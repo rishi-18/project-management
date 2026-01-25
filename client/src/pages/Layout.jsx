@@ -5,18 +5,27 @@ import { Outlet } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { loadTheme } from '../features/themeSlice'
 import { Loader2Icon } from 'lucide-react'
-import { useUser,SignIn } from '@clerk/clerk-react'
+import { useUser,SignIn, useAuth, CreateOrganization } from '@clerk/clerk-react'
+import { fetchWorkspaces } from '../features/workspaceSlice'
 
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const { loading } = useSelector((state) => state.workspace)
+    const { loading,workspaces } = useSelector((state) => state.workspace)
     const dispatch = useDispatch()
     const {user, isLoaded} = useUser()
+    const {getToken} = useAuth();
 
     // Initial load of theme
     useEffect(() => {
         dispatch(loadTheme())
     }, [])
+
+    //initial load of workspaces
+    useEffect(()=>{
+        if(isLoaded && user && workspaces.length===0){
+            dispatch(fetchWorkspaces({getToken}))
+        }
+    },[user,isLoaded])
 
     if(!user){
         return (
@@ -31,6 +40,13 @@ const Layout = () => {
         </div>
     )
 
+    if(user && workspaces.length===0){
+        return (
+            <div className='min-h-screen flex justify-center items-center'>
+                <CreateOrganization/>
+            </div>
+        )
+    }
     return (
         <div className="flex bg-white dark:bg-zinc-950 text-gray-900 dark:text-slate-100">
             <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />

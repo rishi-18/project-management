@@ -21,6 +21,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "inngest": "^3.49.3",
+    "nodemailer": "^7.0.12",
     "ws": "^8.19.0"
   },
   "devDependencies": {

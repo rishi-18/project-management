@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import prisma from "../configs/prisma.js";
+import sendEmail from "../configs/nodemailer.js";
 
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "my-app" });
@@ -133,7 +134,49 @@ const syncWorkspaceMemberCreation = inngest.createFunction(
     }
 )
 
+//inngest function to send email on task assignment
+const sendTaskAssignmentEmail = inngest.createFunction(
+    {id: "send-task-assignment-email"},
+    {event: "app/task.assigned"},
+    async({event,step})=>{
+        const {taskId,origin} = event.data;
 
+        const task = await prisma.task.findUnique({
+            where:{id: taskId},
+            include:{assignee:true, project:true}
+        })
+
+        await sendEmail({
+            to: task.assignee.email,
+            subject: `New Task Assigned: ${task.project.name}`,
+            body: `Hi ${task.assignee.name}, you have been assigned a new task: ${task.title} due on ${new Date(task.due_date).toLocaleDateString()}. Please check the project management app for more details.
+                    <a href=${origin}></a>`,
+        })
+
+        if(new Date(task.due_date).toLocaleDateString() != new Date().toLocaleDateString()){
+            await step.sleepUntil('wait-for-the-due-date', new Date(task.due_date));
+
+            await step.run('check-if-task-is-completed',async()=>{
+                const task = await prisma.task.findUnique({
+                    where:{id: taskId},
+                    include:{assignee:true, project:true}
+                })
+
+                if(!task) return;
+                if(task.status !== "DONE"){
+                    await step.run('send-task-reminder-email', async()=>{
+                        await sendEmail({
+                            to: task.assignee.email,
+                            subject: `Task Reminder: ${task.project.name}`,
+                            body: `Hi ${task.assignee.name}, this is a reminder that the task: ${task.title} is due today. Please make sure to complete it on time. Check the project management app for more details.
+                                    <a href=${origin}></a>`,
+                        })
+                    })
+                }
+            })
+        }
+    }
+)
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
@@ -144,4 +187,5 @@ export const functions = [
     syncWorkspaceUpdation,
     syncWorkspaceDeletion,
     syncWorkspaceMemberCreation,
+    sendTaskAssignmentEmail,
 ];
