@@ -1,4 +1,5 @@
 import prisma from "../configs/prisma.js";
+import { inngest } from "../inngest/index.js";
 
 //create task
 export const createTask = async (req, res) => {
@@ -19,7 +20,8 @@ export const createTask = async (req, res) => {
     //check if user has admin role for project
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      include: { workspace: { include: { user: true } } },
+      include: { workspace: { include: { owner: true } },members : true },
+      
     });
 
     if (!project) {
@@ -43,6 +45,7 @@ export const createTask = async (req, res) => {
         status,
         priority,
         assigneeId,
+        type,
         due_date: new Date(due_date),
       },
     });
@@ -51,6 +54,14 @@ export const createTask = async (req, res) => {
       where: { id: task.id },
       include: { assignee: true },
     });
+
+    await inngest.send({
+        name: "app/task.assigned",
+        data: {
+            taskId: task.id,
+            origin,
+        },
+    })
 
     res.json({ task: taskWithAssignee, message: "Task created successfully" });
   } catch (error) {
@@ -111,7 +122,7 @@ export const deleteTask = async (req, res) => {
     }
 
     const project = await prisma.project.findUnique({
-      where: { id: tasks[0].projectId },
+      where: { id: task[0].projectId },
       include: { members: { include: { user: true } } },
     });
 
@@ -121,12 +132,11 @@ export const deleteTask = async (req, res) => {
       return res.status(403).json({ error: "Only team lead can delete tasks" });
     }
 
-    await prisma.task.delete({
+    await prisma.task.deleteMany({
       where: { id: {in: tasksIds} },
-      data: req.body,
     });
 
-    res.json({ task: updatedTask, message: "Task updated successfully" });
+    res.json("Task deleted successfully" );
   } catch (error) {
     console.error("Error updating task:", error);
     res.status(500).json({ error: "Internal server error" });

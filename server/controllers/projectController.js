@@ -26,7 +26,7 @@ export const createProject = async (req, res) => {
             select:{id:true}
         })
 
-        const project = prisma.project.create({
+        const project = await prisma.project.create({
             data:{
                 workspaceId,
                 name,
@@ -34,7 +34,7 @@ export const createProject = async (req, res) => {
                 status,
                 priority,
                 progress,
-                team_lead: teamLead?.id,
+                team_lead: userId,
                 start_date: start_date ? new Date(start_date) : null,
                 end_date: end_date ? new Date(end_date) : null,
             }
@@ -43,7 +43,7 @@ export const createProject = async (req, res) => {
         //add team members if in the workspace
         if(team_members?.length > 0){
             const membersToAdd = []
-            workspace.members.forEach(()=>{
+            workspace.members.forEach((member)=>{
                 if(team_members.includes(member.user.email)){
                     membersToAdd.push(member.user.id)
                 }
@@ -76,7 +76,7 @@ res.json({project: projectWithMembers, message: "Project created successfully"})
 export const updateProject = async (req, res) => {
     try {
         const {userId} = await req.auth();
-        const {projectId, description, name, status, start_date, end_date, team_members, team_lead, progress, priority} = req.body;
+        const {id:projectId,workspaceId, description, name, status, start_date, end_date, team_members, team_lead, progress, priority} = req.body;
 
         //check if user has admin role for workspace
          const workspace = await prisma.workspace.findUnique({
@@ -151,7 +151,7 @@ export const addMember = async (req, res) => {
         
 
         //if user is a member already
-        const existingMember = project.members.find((member)=>member.email === email);
+        const existingMember = project.members.find((member)=>member.user.email === email);
         if(existingMember){
             return res.status(400).json({error: "User is already a member of the project"});
         }

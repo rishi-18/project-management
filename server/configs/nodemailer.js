@@ -17,5 +17,6 @@ const sendEmail = async (to, subject, body) => {
     subject,
     html: body,
   });
+    return response;
 }
 export default sendEmail;
