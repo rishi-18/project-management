@@ -40,13 +40,15 @@ const Layout = () => {
         </div>
     )
 
-    if(user && workspaces.length===0){
-        return (
-            <div className='min-h-screen flex justify-center items-center'>
-                <CreateOrganization/>
-            </div>
-        )
-    }
+    // if(user 
+    //     && workspaces.length===0
+    // ){
+    //     return (
+    //         <div className='min-h-screen flex justify-center items-center'>
+    //             <CreateOrganization/>
+    //         </div>
+    //     )
+    // }
     return (
         <div className="flex bg-white dark:bg-zinc-950 text-gray-900 dark:text-slate-100">
             <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
